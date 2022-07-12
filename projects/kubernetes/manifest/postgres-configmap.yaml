@@ -1,0 +1,42 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: playground
+  name: "postgres-secret"
+type: Opaque
+stringData:
+  password: master-password
+  replicaPassword: replica-password
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: playground
+  name: "postgres-configmap"
+data:
+  create-replica-user.sh: |
+    #!/bin/bash
+    set -e
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    	CREATE ROLE replication WITH REPLICATION PASSWORD '$REPLICATION_PASSWORD' LOGIN
+    EOSQL
+  postgres.conf: |
+    include_if_exists = 'master.conf'
+    include_if_exists = 'replica.conf'
+  master.conf: |
+    wal_level = hot_standby
+    max_wal_senders = 5
+    wal_keep_segments = 32
+  replica.conf: |
+    hot_standby = on
+  pg_hba.conf: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            trust
+    host    all             all             ::1/128                 trust
+    local   replication     all                                     trust
+    host    replication     all             127.0.0.1/32            trust
+    host    replication     all             ::1/128                 trust
+    host    replication     replication     all                     md5
+    host    all             all             all                     md5

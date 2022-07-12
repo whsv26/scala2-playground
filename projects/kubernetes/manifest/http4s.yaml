@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: playground
+  name: http4s-deployment
+  labels:
+    app: http4s
+# ReplicaSet spec
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: http4s
+  # Pod blueprint
+  template:
+    metadata:
+      labels:
+        app: http4s
+    spec:
+      containers:
+        - name: http4s
+          ports:
+            - containerPort: 8080
+          # minikube image load <image>
+          # imagePullPolicy: Never
+          # image: "localhost:5000/whsv26/kubernetes:latest"
+          image: "whsv26/kubernetes:latest"
+          imagePullPolicy: Always
+          env:
+            - name: APP_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: password
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mongodb-config
+                  key: url
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: mongodb-config
+                  key: db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: playground
+  name: http4s-service
+spec:
+  type: ClusterIP
+  selector:
+    app: http4s
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP

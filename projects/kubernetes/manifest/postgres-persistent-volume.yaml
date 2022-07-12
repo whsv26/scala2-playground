@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv0
+spec:
+  storageClassName: fast
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  # The volume can be mounted as read-write by a single node.
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  nfs:
+    path: /mnt/scala_playground_share/pv0
+    server: host.minikube.internal
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv1
+spec:
+  storageClassName: fast
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  nfs:
+    path: /mnt/scala_playground_share/pv1
+    server: host.minikube.internal
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv2
+spec:
+  storageClassName: fast
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  nfs:
+    path: /mnt/scala_playground_share/pv2
+    server: host.minikube.internal
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv3
+spec:
+  storageClassName: slow
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  nfs:
+    path: /mnt/scala_playground_share/pv3
+    server: host.minikube.internal
+---

@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2beta28
+kind: Config
+build:
+  artifacts:
+    - image: localhost:5000/whsv26/kubernetes # must match in artifactOverrides
+deploy:
+  helm:
+    releases:
+      - name: my-release
+        chartPath: charts/http4s-app
+        namespace: playground
+        createNamespace: true
+        artifactOverrides:
+          image: localhost:5000/whsv26/kubernetes # no tag present!
+        imageStrategy:
+          helm: {}
