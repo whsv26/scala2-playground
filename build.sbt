@@ -10,6 +10,17 @@ lazy val stdlib = (project in file("./projects/stdlib"))
     )
   )
 
+lazy val shapeless = (project in file("./projects/shapeless"))
+  .settings(
+    scalaVersion := "2.13.8",
+    name := "shapeless",
+    idePackagePrefix := Some("org.whsv26.playground.shapeless"),
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % "2.7.0",
+      "com.chuusai" %% "shapeless" % "2.3.9"
+    )
+  )
+
 lazy val kafka = (project in file("./projects/kafka"))
   .settings(
     scalaVersion := "2.13.8",
