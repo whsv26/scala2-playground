@@ -1,12 +1,47 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
+scalacOptions ++= Seq(
+  "-language:experimental.macros",
+)
+
+lazy val macroses = (project in file("./projects/macroses"))
+  .settings(
+    scalaVersion := "2.13.8",
+    name := "stdlib",
+    idePackagePrefix := Some("org.whsv26.playground.macroses"),
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      "com.chuusai" %% "shapeless" % "2.3.3",
+    ),
+    scalacOptions ++= Seq(
+      "-language:experimental.macros",
+    )
+  )
+
 lazy val stdlib = (project in file("./projects/stdlib"))
+  .dependsOn(macroses)
   .settings(
     scalaVersion := "2.13.8",
     name := "stdlib",
     idePackagePrefix := Some("org.whsv26.playground.stdlib"),
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.7.0",
+    )
+  )
+
+lazy val newtypes = (project in file("./projects/newtypes"))
+  .settings(
+    scalaVersion := "2.13.8",
+    name := "newtypes",
+    idePackagePrefix := Some("org.whsv26.playground.newtypes"),
+    libraryDependencies ++= Seq(
+      "io.estatico" %% "newtype" % "0.4.4",
+      "io.circe" %% "circe-core" % "0.14.1",
+      "io.circe" %% "circe-generic" % "0.14.1",
+      "io.circe" %% "circe-parser" % "0.14.1",
+    ),
+    scalacOptions ++= Seq(
+      "-Ymacro-annotations",
     )
   )
 
