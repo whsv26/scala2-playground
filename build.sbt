@@ -19,7 +19,6 @@ lazy val macroses = (project in file("./projects/macroses"))
   )
 
 lazy val stdlib = (project in file("./projects/stdlib"))
-  .dependsOn(macroses)
   .settings(
     scalaVersion := "2.13.8",
     name := "stdlib",
@@ -30,6 +29,7 @@ lazy val stdlib = (project in file("./projects/stdlib"))
   )
 
 lazy val newtypes = (project in file("./projects/newtypes"))
+  .dependsOn(macroses)
   .settings(
     scalaVersion := "2.13.8",
     name := "newtypes",

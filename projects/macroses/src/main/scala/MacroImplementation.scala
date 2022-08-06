@@ -8,27 +8,34 @@ object MacroImplementation {
     def id: String
   }
 
-  def macros[T]: T => String = macro impl[T]
+  abstract class IdExtractor[T] {
+    def extract(t: T): String
+  }
 
-  def impl[T: c.WeakTypeTag](c: blackbox.Context): c.Expr[T => String] = {
+  object IdExtractor {
+    implicit def instance[T]: IdExtractor[T] = macro deriveInstance[T]
+  }
+
+  def deriveInstance[T: c.WeakTypeTag](c: blackbox.Context): c.Expr[IdExtractor[T]] = {
     import c.universe._
 
-    val functionType = appliedType(
-      typeOf[(_) => _].typeConstructor,
-      List(weakTypeOf[T], typeOf[String])
-    )
 
-    val extractor =
-      if (weakTypeOf[T] <:< typeOf[HasId]) "v1.id"
-      else "v1.id.value"
+    val extractorType = appliedType(typeOf[IdExtractor[_]].typeConstructor, List(weakTypeOf[T]))
 
-    val tree =
+    val tree = if (weakTypeOf[T] <:< typeOf[HasId]) {
       q"""
-        new $functionType {
-          override def apply(v1: ${weakTypeOf[T]}): String = $extractor
+        new $extractorType {
+          override def extract(t: ${weakTypeOf[T]}): String = t.id
         }
       """
+    } else {
+      q"""
+        new $extractorType {
+          override def extract(t: ${weakTypeOf[T]}): String = t.id.value
+        }
+      """
+    }
 
-    c.Expr[T => String](tree)
+    c.Expr[IdExtractor[T]](tree)
   }
 }
