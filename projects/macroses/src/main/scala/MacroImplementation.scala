@@ -1,5 +1,7 @@
 package org.whsv26.playground.macroses
 
+import io.estatico.newtype.Coercible
+
 import scala.reflect.macros.blackbox
 import scala.language.experimental.macros
 
@@ -8,34 +10,61 @@ object MacroImplementation {
     def id: String
   }
 
-  abstract class IdExtractor[T] {
-    def extract(t: T): String
+  trait Entity[T] {
+    def id(t: T): String
   }
 
-  object IdExtractor {
-    implicit def instance[T]: IdExtractor[T] = macro deriveInstance[T]
+  object Entity {
+    def apply[T: Entity]: Entity[T] = implicitly[Entity[T]]
+
+    implicit def instance[T]: Entity[T] = macro deriveInstance[T]
   }
 
-  def deriveInstance[T: c.WeakTypeTag](c: blackbox.Context): c.Expr[IdExtractor[T]] = {
+  def deriveInstance[T: c.WeakTypeTag](c: blackbox.Context): c.Expr[Entity[T]] = {
     import c.universe._
 
+    val classSymbol = weakTypeOf[T].typeSymbol.asClass
 
-    val extractorType = appliedType(typeOf[IdExtractor[_]].typeConstructor, List(weakTypeOf[T]))
+    val idFieldType = classSymbol
+      .primaryConstructor
+      .asMethod
+      .paramLists
+      .head
+      .find(_.name.encodedName.toString == "id")
+      .map(_.asTerm.typeSignature)
 
-    val tree = if (weakTypeOf[T] <:< typeOf[HasId]) {
+    val isHasId = weakTypeOf[T] <:< typeOf[HasId]
+
+    val isNewType = idFieldType
+      .map(tpe => c.inferImplicitValue(
+        appliedType(typeOf[Coercible[_, _]].typeConstructor, List(tpe, typeOf[String])),
+        silent = true
+      ))
+      .collect {
+        case EmptyTree => false
+        case _ => true
+      }
+      .getOrElse(false)
+
+    val extractorType = appliedType(typeOf[Entity[_]].typeConstructor, List(weakTypeOf[T]))
+
+    val tree = if (isHasId) {
       q"""
         new $extractorType {
-          override def extract(t: ${weakTypeOf[T]}): String = t.id
+          override def id(t: ${weakTypeOf[T]}): String = t.id
+        }
+      """
+    } else if (isNewType) {
+      q"""
+        new $extractorType {
+          override def id(t: ${weakTypeOf[T]}): String =
+            Coercible[${idFieldType.get}, String].apply(t.id)
         }
       """
     } else {
-      q"""
-        new $extractorType {
-          override def extract(t: ${weakTypeOf[T]}): String = t.id.value
-        }
-      """
+      c.abort(c.enclosingPosition, "Only HasId and Newtype allowed")
     }
 
-    c.Expr[IdExtractor[T]](tree)
+    c.Expr[Entity[T]](tree)
   }
 }

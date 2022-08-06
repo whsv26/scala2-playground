@@ -12,6 +12,7 @@ lazy val macroses = (project in file("./projects/macroses"))
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
       "com.chuusai" %% "shapeless" % "2.3.3",
+      "io.estatico" %% "newtype" % "0.4.4",
     ),
     scalacOptions ++= Seq(
       "-language:experimental.macros",
