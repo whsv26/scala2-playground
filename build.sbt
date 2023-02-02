@@ -25,7 +25,7 @@ lazy val stdlib = (project in file("./projects/stdlib"))
     name := "stdlib",
     idePackagePrefix := Some("org.whsv26.playground.stdlib"),
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % "2.7.0",
+      "org.typelevel" %% "cats-core" % "2.9.0",
     )
   )
 
@@ -86,13 +86,16 @@ lazy val http4s = (project in file("./projects/http4s"))
     )
   )
 
-lazy val monix = (project in file("./projects/monix"))
+lazy val sandbox = (project in file("./projects/sandbox"))
   .settings(
-    scalaVersion := "2.13.8",
-    name := "monix",
-    idePackagePrefix := Some("org.whsv26.playground.monix"),
+    scalaVersion := "2.13.10",
+    name := "sandbox",
+    idePackagePrefix := Some("org.whsv26.playground.sandbox"),
     libraryDependencies ++= Seq(
-      "io.monix" %% "monix" % "3.4.0"
+      "org.typelevel" %% "cats-core" % "2.9.0",
+      "org.typelevel" %% "cats-effect" % "3.4.5",
+      "org.typelevel" %% "mouse" % "1.2.1",
+      "co.fs2" %% "fs2-core" % "3.5.0",
     )
   )
 
