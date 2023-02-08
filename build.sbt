@@ -98,7 +98,6 @@ lazy val sandbox = (project in file("./projects/sandbox"))
       "co.fs2" %% "fs2-core" % "3.5.0",
     )
   )
-
 lazy val kubernetes = (project in file("./projects/kubernetes"))
   .settings(
     scalaVersion := "2.13.8",
@@ -126,3 +125,5 @@ lazy val kubernetes = (project in file("./projects/kubernetes"))
     }
   )
   .enablePlugins(DockerPlugin)
+
+lazy val rockTheJvm = project in file("./projects/rockthejvm")
