@@ -19,8 +19,20 @@ lazy val zioStreams = (project in file("./ziostreams"))
     )
   )
 
+lazy val zioKafka = (project in file("./ziokafka"))
+  .settings(
+    scalaVersion := "2.13.10",
+    name := "ZIO Streams",
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio" % "2.0.7",
+      "dev.zio" %% "zio-kafka" % "2.0.6",
+      "dev.zio" %% "zio-json" % "0.4.2"
+    )
+  )
+
 lazy val rockTheJvm = (project in file("."))
   .aggregate(
     scalaTestingWithScalaTest,
-    zioStreams
+    zioStreams,
+    zioKafka
   )
