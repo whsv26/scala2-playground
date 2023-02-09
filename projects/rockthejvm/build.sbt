@@ -25,8 +25,10 @@ lazy val zioKafka = (project in file("./ziokafka"))
     name := "ZIO Streams",
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % "2.0.7",
-      "dev.zio" %% "zio-kafka" % "2.0.6",
-      "dev.zio" %% "zio-json" % "0.4.2"
+      "dev.zio" %% "zio-kafka" % "2.0.7",
+      "dev.zio" %% "zio-json" % "0.4.2",
+      "org.slf4j" % "slf4j-api" % "2.0.5",
+      "ch.qos.logback" % "logback-classic" % "1.4.5"
     )
   )
 
