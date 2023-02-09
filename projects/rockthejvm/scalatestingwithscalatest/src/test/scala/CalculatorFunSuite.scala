@@ -1,6 +1,6 @@
 import org.scalatest.funsuite.AnyFunSuite
 
-class CalculatorSuite extends AnyFunSuite {
+class CalculatorFunSuite extends AnyFunSuite {
   val calculator = new Calculator
 
   test("multiplication by 0 should always be 0") {

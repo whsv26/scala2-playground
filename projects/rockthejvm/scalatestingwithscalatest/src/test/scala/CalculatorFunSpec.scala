@@ -1,7 +1,7 @@
 import org.scalatest.funspec.AnyFunSpec
 
 // BDD
-class CalculatorSpec extends AnyFunSpec {
+class CalculatorFunSpec extends AnyFunSpec {
   val calculator = new Calculator
 
   describe("multiplication") {
