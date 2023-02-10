@@ -32,9 +32,16 @@ lazy val zioKafka = (project in file("./ziokafka"))
     )
   )
 
+lazy val taglessFinal = (project in file("./taglessfinal"))
+  .settings(
+    scalaVersion := "2.13.10",
+    name := "Tagless Final in Scala"
+  )
+
 lazy val rockTheJvm = (project in file("."))
   .aggregate(
     scalaTestingWithScalaTest,
     zioStreams,
-    zioKafka
+    zioKafka,
+    taglessFinal
   )
