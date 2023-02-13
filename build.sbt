@@ -98,32 +98,7 @@ lazy val sandbox = (project in file("./projects/sandbox"))
       "co.fs2" %% "fs2-core" % "3.5.0",
     )
   )
-lazy val kubernetes = (project in file("./projects/kubernetes"))
-  .settings(
-    scalaVersion := "2.13.8",
-    name := "kubernetes",
-    version := "1.0.0-SNAPSHOT",
-    idePackagePrefix := Some("org.whsv26.playground.kubernetes"),
-    libraryDependencies ++= Seq(
-      "org.http4s" %% "http4s-dsl" % "0.23.10",
-      "org.http4s" %% "http4s-blaze-server" % "0.23.10",
-      "org.http4s" %% "http4s-blaze-client" % "0.23.10",
-      "ch.qos.logback" % "logback-classic" % "1.2.11",
-      "org.mongodb.scala" %% "mongo-scala-driver" % "4.5.1"
-    ),
-    docker / buildOptions := BuildOptions(cache = false),
-    docker / imageNames := Seq(ImageName(s"whsv26/${name.value}:latest")),
-    docker / dockerfile := {
-      val artifact: File = assembly.value
-      val artifactTargetPath = s"/app/${artifact.name}"
-      new Dockerfile {
-        from("openjdk:11-jre")
-        add(artifact, artifactTargetPath)
-        entryPoint("java", "-jar", artifactTargetPath)
-        expose(8080)
-      }
-    }
-  )
-  .enablePlugins(DockerPlugin)
+
+lazy val kubernetes = project in file("./projects/k8s")
 
 lazy val rockTheJvm = project in file("./projects/rockthejvm")
