@@ -1,0 +1,15 @@
+dependencies:
+- name: elasticsearch-logging
+  repository: file://../elasticsearch-logging
+  version: 19.5.5
+- name: fluentd-logging
+  repository: file://../fluentd-logging
+  version: 1.0.0
+- name: kibana-logging
+  repository: file://../kibana-logging
+  version: 10.2.10
+- name: web-server
+  repository: file://../web-server
+  version: 1.0.0
+digest: sha256:60768ee60b67d791e8f3d8548c5b8bf39d5cf6d7ca562dde08fc01cbdcdb9e5e
+generated: "2023-02-16T01:30:32.457375005+03:00"
