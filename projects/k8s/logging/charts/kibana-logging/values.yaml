@@ -693,7 +693,7 @@ elasticsearch:
   ##   - elasticsearch-1
   ##   - elasticsearch-2
   ##
-  hosts: ["elasticsearch-logging"]
+  hosts: ["app-elasticsearch-logging"]
   ## @param elasticsearch.port Elasticsearch port
   ##
   port: "9200"
