@@ -37,3 +37,7 @@ dependencies:
   - name: "web-server"
     repository: "file://../web-server"
     version: "1.0.0"
+  - name: "kube-prometheus-stack"
+    repository: "file://../kube-prometheus-stack"
+    version: "45.1.0"
+
