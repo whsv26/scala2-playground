@@ -1,12 +1,11 @@
 package org.whsv26.playground.sandbox
 
+import cats.Monad
 import cats.data.NonEmptyList
 import cats.effect._
 import cats.implicits._
 import fs2._
 import fs2.concurrent.Topic
-import scala.concurrent.duration.DurationInt
-import scala.util.Random
 
 object Game extends IOApp.Simple {
 
@@ -22,7 +21,6 @@ object Game extends IOApp.Simple {
         .flatMap { interactions =>
           game(players)(topic)
             .concurrently(Stream.emits(interactions.toList).parJoinUnbounded)
-            .interruptAfter(5.seconds)
         }
     }
 
@@ -58,10 +56,15 @@ object Game extends IOApp.Simple {
   def move(topic: Topic[IO, GameMessage])(player: Player, currentPosition: Position): IO[Unit] =
     for {
       _ <- IO.println(s"${player.name} starting the move: $currentPosition")
-      nextPosition <- IO.sleep(500.millis).as(Position(Random.nextInt(10), Random.nextInt(10)))
+      nextPosition <- readPosition
       _ <- IO.println(s"${player.name} made his move: $nextPosition")
       _ <- topic.publish1(PlayerMoved(player, currentPosition, nextPosition))
     } yield ()
+
+  def readPosition: IO[Position] =
+    Monad[IO]
+      .iterateUntil(IO.readLine)(Position.isValid)
+      .map(Position.parse(_).get)
 
   trait Fsm[F[_], S, I, O] {
     def run: (S, I) => F[(S, O)]
@@ -83,7 +86,19 @@ object Game extends IOApp.Simple {
   }
 
   case class Player(name: String)
+
   case class Position(x: Int, y: Int)
+
+  object Position {
+    def isValid(str: String): Boolean = parse(str).isDefined
+    def parse(str: String): Option[Position] = {
+      val parts = str.split(',').toList
+      val first = parts.headOption.flatMap(_.toIntOption)
+      val seconds = parts.tail.headOption.flatMap(_.toIntOption)
+      (first, seconds).mapN(Position.apply)
+    }
+  }
+
   case class Game(round: List[Player], players: List[Player], moves: List[PlayerMoved], map: Map[Player, Position])
 
   sealed trait GameMessage
