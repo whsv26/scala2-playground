@@ -1,105 +1,97 @@
 package org.whsv26.playground.sandbox
 
+import cats.data.NonEmptyList
 import cats.effect._
-import cats.effect.std.Queue
 import cats.implicits._
 import fs2._
 import fs2.concurrent.Topic
-
-import scala.collection.immutable.ListSet
 import scala.concurrent.duration.DurationInt
+import scala.util.Random
 
 object Game extends IOApp.Simple {
-
-  case class Player(name: String)
-
-  case class Game(round: List[Player], players: List[Player], moves: List[PlayerMoved])
-
-  sealed trait GameEvent
-  case class PlayerTurn(player: Player) extends GameEvent
-  case class PlayerMoved(player: Player, position: String) extends GameEvent
-
-  def fsm(players: List[Player], first: Player)(topic: Topic[IO, GameEvent]): Stream[IO, (Game, GameEvent)] = {
-    val gameEvents = Stream.eval(IO.pure(PlayerTurn(first))) ++ topic.subscribe(1)
-    val round = players.dropWhile(_ != first)
-
-    gameEvents
-      .evalMapAccumulate(Game(, players, Nil)) {
-        case (Game(next :: tail, players, moves), PlayerMoved(position, player)) =>
-          IO((
-            Game(tail, players, PlayerMoved(position, player) :: moves),
-            PlayerTurn(next)
-          ))
-        case (Game(Nil, next :: tail, moves), PlayerMoved(position, player)) =>
-          IO((
-            Game(tail, next :: tail, PlayerMoved(position, player) :: moves),
-            PlayerTurn(next)
-          ))
-
-      }
-  }
 
   override def run: IO[Unit] =
     program.flatMap(_.compile.drain)
 
-  def program: IO[Stream[IO, Unit]] = {
-
+  def program: IO[Stream[IO, Unit]] =
     for {
-      topic <- Topic[IO, PlayerMoved]
-
-      redPlayer = Player("RED")
-      yellowPlayer = Player("YELLOW")
-      _ <- fsm(List(redPlayer, yellowPlayer), redPlayer)
-
-
-
-      players = List(
-        play(topic, gameState)(redPlayer),
-        play(topic, gameState) (yellowPlayer)
-      )
-
+      topic <- Topic[IO, GameMessage]
+      players = NonEmptyList.of(Player("RED"), Player("YELLOW"))
     } yield {
-      Stream
-        .emits(players)
-        .covary[IO]
-        .parJoinUnbounded
-        .concurrently {
-          val startTheGame =
-            IO.println("Start the game!") >>
-              IO.println("RED player makes first move\n") >>
-              topic.publish1(PlayerMoved("start position", yellowPlayer)).void
-
-          topic.subscribers.find(_ == players.length).void ++
-            Stream.eval(startTheGame)
+      Stream.resource(players.traverse(play(topic)))
+        .flatMap { interactions =>
+          game(players)(topic)
+            .concurrently(Stream.emits(interactions.toList).parJoinUnbounded)
+            .interruptAfter(5.seconds)
         }
-        .interruptAfter(5.seconds)
+    }
+
+  def game(players: NonEmptyList[Player])(topic: Topic[IO, GameMessage]): Stream[IO, Unit] = {
+    val printStartMsg =
+      IO.println("Start the game!") >>
+        IO.println(s"${players.head.name} player makes first move\n")
+
+    val makeFirstMove = Stream.eval(printStartMsg) ++
+      Stream.eval(topic.publish1(Move(players.head, Position(0, 0))).void)
+
+    val gameInitialState = Game(players.tail, players.toList, Nil, players.toList.map(_ -> Position(0, 0)).toMap)
+
+    makeFirstMove ++ topic
+      .subscribe(1)
+      .collect { case event: GameEvent => event }
+      .evalMapAccumulate(gameInitialState)(GameFsm.run)
+      .evalMap { case (_, command) => topic.publish1(command).void }
+  }
+
+  def play(topic: Topic[IO, GameMessage])(player: Player): Resource[IO, Stream[IO, Unit]] =
+    topic
+      .subscribeAwait(1)
+      .map { stream =>
+        stream
+          .collect {
+            case Move(nextPlayer, currentPosition) if nextPlayer == player =>
+              currentPosition
+          }
+          .evalMap(move(topic)(player, _))
+      }
+
+  def move(topic: Topic[IO, GameMessage])(player: Player, currentPosition: Position): IO[Unit] =
+    for {
+      _ <- IO.println(s"${player.name} starting the move: $currentPosition")
+      nextPosition <- IO.sleep(500.millis).as(Position(Random.nextInt(10), Random.nextInt(10)))
+      _ <- IO.println(s"${player.name} made his move: $nextPosition")
+      _ <- topic.publish1(PlayerMoved(player, currentPosition, nextPosition))
+    } yield ()
+
+  trait Fsm[F[_], S, I, O] {
+    def run: (S, I) => F[(S, O)]
+  }
+
+  case object GameFsm extends Fsm[IO, Game, GameEvent, GameCommand] {
+    override def run: (Game, GameEvent) => IO[(Game, GameCommand)] = {
+      case (Game(next :: tail, players, moves, map), move @ PlayerMoved(player, _, to)) =>
+        IO((
+          Game(tail, players, move :: moves, map.updated(player, to)),
+          Move(next, map(next))
+        ))
+      case (Game(Nil, next :: tail, moves, map), move @ PlayerMoved(player, _, to)) =>
+        IO((
+          Game(tail, next :: tail, move :: moves, map.updated(player, to)),
+          Move(next, map(next))
+        ))
     }
   }
 
-  def play(topic: Topic[IO, PlayerMoved], game: Ref[IO, Game])(player: Player): Stream[IO, Unit] = {
-    val subscribe = topic
-      .subscribeAwait(1)
-      .flatMap { subscription =>
-        val join = game.update(state => state.copy(players = state.players.incl(player)))
-        val leave = game.update(state => state.copy(players = state.players.excl(player)))
-        Resource.make(join)(_ => leave).as(subscription)
-      }
+  case class Player(name: String)
+  case class Position(x: Int, y: Int)
+  case class Game(round: List[Player], players: List[Player], moves: List[PlayerMoved], map: Map[Player, Position])
 
-    Stream
-      .resource(subscribe)
-      .flatten
-      .filter(_.player != player)
-      .evalMap(pos =>
-        move(topic)(game, player, pos.toString)
-      )
-  }
+  sealed trait GameMessage
 
-  def move(topic: Topic[IO, PlayerMoved])(player: Player, pos: String): IO[Unit] =
-    for {
-      _ <- IO.println(s"${player.name} starting the move: $pos")
-      _ <- IO.sleep(100.millis)
-      _ <- IO.println(s"${player.name} made his move: $pos")
-      _ <- topic.publish1(PlayerMoved(player, pos))
-    } yield ()
+  sealed trait GameEvent extends GameMessage
+  case class PlayerMoved(player: Player, from: Position, to: Position) extends GameEvent
+
+  sealed trait GameCommand extends GameMessage
+  case class Move(player: Player, at: Position) extends GameCommand
 
 }
